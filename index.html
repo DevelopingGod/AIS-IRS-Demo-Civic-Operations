@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Civic Operations · walkthrough</title>
+<style>
+  :root{
+    --navy:#04214A; --navy2:#0B3A73; --orange:#EF7C00; --ink:#12202F; --mut:#6B7D93;
+    --line:#DFE5EC; --bg:#EDF1F6; --ok:#1E8E5A; --crit:#D32F1F; --soft:#F5F8FC;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:"Segoe UI",Inter,system-ui,sans-serif}
+  body{background:var(--bg);color:var(--ink);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+
+  header{background:var(--navy);color:#fff;padding:10px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  header h1{font-size:17px;font-weight:700;letter-spacing:.2px}
+  .steps{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+  .step{font-size:12px;font-weight:600;color:#93ACC8;padding:5px 12px;border-radius:99px;
+        border:1px solid #17497f;transition:.45s}
+  .step.on{background:#fff;color:var(--navy);border-color:#fff;transform:scale(1.06)}
+  .step.done{color:#7fd3ac;border-color:#1d5c46}
+
+  main{flex:1;display:flex;min-height:0}
+  .rail{width:80px;background:#082B57;display:flex;flex-direction:column;align-items:center;padding-top:14px;gap:8px;flex:none}
+  .rail button{width:64px;height:62px;border:0;border-radius:14px;background:transparent;color:#93ACC8;cursor:pointer;
+               font-size:10.5px;font-weight:700;position:relative;transition:.25s}
+  .rail button div{font-size:20px;margin-bottom:3px}
+  .rail button:hover{background:#0E3B6E;color:#fff}
+  .rail button.on{background:#fff;color:var(--navy)}
+  .rail button.ping::after{content:"";position:absolute;top:8px;right:8px;width:10px;height:10px;border-radius:50%;
+       background:var(--orange);box-shadow:0 0 0 0 #EF7C0099;animation:ping 1.5s infinite}
+  @keyframes ping{70%{box-shadow:0 0 0 10px #EF7C0000}100%{box-shadow:0 0 0 0 #EF7C0000}}
+
+  .view{flex:1;padding:20px 24px;overflow:auto;display:none}
+  .view.on{display:block;animation:viewIn .45s cubic-bezier(.2,.7,.3,1)}
+  @keyframes viewIn{from{opacity:0;transform:translateY(14px)}}
+  .vhead{margin-bottom:14px}
+  .vhead h2{font-size:21px;color:var(--navy)}
+  .vhead span{font-size:13px;color:var(--mut)}
+  .wrap{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}
+
+  /* ---------------- phone ---------------- */
+  .phone{width:330px;flex:none;background:#fff;border:9px solid #10243D;border-radius:32px;overflow:hidden;
+         box-shadow:0 18px 40px #0a1c3326}
+  .pbar{background:var(--navy);color:#fff;padding:11px 15px;font-size:13px;font-weight:700;display:flex;justify-content:space-between}
+  .pbody{padding:16px;min-height:400px;position:relative}
+  .chat{display:flex;flex-direction:column;gap:8px}
+  .msg{font-size:14px;padding:9px 12px;border-radius:14px;background:var(--soft);max-width:92%;line-height:1.45;
+       animation:msgIn .4s cubic-bezier(.2,.7,.3,1)}
+  .msg.me{background:var(--navy);color:#fff;align-self:flex-end}
+  @keyframes msgIn{from{opacity:0;transform:translateY(10px) scale(.97)}}
+  .quick{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+  .quick button{font-size:13px;text-align:left;border:1px solid #CBD8E6;color:var(--navy2);background:#fff;
+                border-radius:12px;padding:10px 12px;cursor:pointer;transition:.2s}
+  .quick button:hover{background:var(--soft);border-color:var(--navy2);transform:translateX(3px)}
+  .btn{width:100%;margin-top:14px;border:0;background:var(--navy);color:#fff;padding:12px;border-radius:12px;
+       font-weight:700;cursor:pointer;font-size:14px;transition:.2s}
+  .btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 14px #04214a33}
+  .btn.orange{background:var(--orange)} .btn.ghost{background:var(--soft);color:var(--navy)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .sos{position:absolute;inset:0;background:var(--crit);color:#fff;display:none;flex-direction:column;align-items:center;
+       justify-content:center;gap:14px;text-align:center;padding:24px}
+  .sos.on{display:flex;animation:sosIn .3s ease}
+  @keyframes sosIn{from{opacity:0;transform:scale(1.06)}}
+  .sos b{font-size:34px;animation:beat 1.1s ease-in-out infinite}
+  @keyframes beat{50%{transform:scale(1.07)}}
+  .sos p{font-size:14px;line-height:1.55}
+
+  /* ---------------- tracker ---------------- */
+  .stp{display:flex;gap:12px;padding-bottom:18px;position:relative}
+  .stp:not(:last-child)::after{content:"";position:absolute;left:14px;top:30px;bottom:0;width:2px;background:var(--line)}
+  .dot{width:29px;height:29px;border-radius:50%;background:var(--line);color:#fff;display:grid;place-items:center;
+       font-size:13px;font-weight:800;flex:none;z-index:1;transition:.3s}
+  .stp.done .dot{background:var(--ok);animation:pop .45s cubic-bezier(.3,1.4,.5,1)}
+  .stp.now .dot{background:var(--orange);box-shadow:0 0 0 5px #EF7C0022}
+  @keyframes pop{0%{transform:scale(.5)}60%{transform:scale(1.18)}100%{transform:scale(1)}}
+  .stp h4{font-size:14.5px} .stp p{font-size:13px;color:var(--mut);margin-top:2px;line-height:1.45}
+
+  /* ---------------- panels ---------------- */
+  .panel{background:#fff;border:1px solid var(--line);border-radius:15px;padding:16px 18px;margin-bottom:14px}
+  .panel h3{font-size:14.5px;color:var(--navy);margin-bottom:12px;display:flex;justify-content:space-between;
+            align-items:center;gap:12px}
+  .hint{font-size:12.5px;color:var(--mut);margin-top:9px;line-height:1.5}
+
+  /* checklist */
+  .chk{display:flex;gap:11px;align-items:flex-start;padding:7px 0;opacity:.3;transition:.45s}
+  .chk.on{opacity:1}
+  .chk .box{width:22px;height:22px;border-radius:7px;background:var(--line);color:#fff;flex:none;display:grid;
+            place-items:center;font-size:12px;font-weight:800}
+  .chk.on .box{background:var(--ok);animation:pop .45s cubic-bezier(.3,1.4,.5,1)}
+  .chk b{font-size:13.5px;font-weight:600;display:block}
+  .chk small{font-size:12.5px;color:var(--mut)}
+
+  /* queue */
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{font-size:10.5px;text-transform:uppercase;color:var(--mut);text-align:left;padding:6px;border-bottom:2px solid var(--line)}
+  td{padding:10px 6px;border-bottom:1px solid var(--line)}
+  tr.row{cursor:pointer;transition:background .25s} tr.row:hover{background:var(--soft)}
+  tr.row.sel{background:#FFF6EA;box-shadow:inset 3px 0 0 var(--orange)}
+  tr.row.newly{animation:rowIn .9s cubic-bezier(.2,.8,.3,1)}
+  @keyframes rowIn{0%{opacity:0;transform:translateY(-22px);background:#FFD9A8}
+                   70%{background:#FFD9A8}100%{opacity:1;transform:none}}
+  .pill{font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:99px;color:#fff}
+  .HIGH{background:#C2410C}.MEDIUM{background:#1D4ED8}.LOW{background:#64748B}
+
+  /* reasons */
+  .why{display:flex;justify-content:space-between;gap:12px;font-size:13.5px;padding:8px 0;
+       border-bottom:1px dashed var(--line);animation:whyIn .45s ease both}
+  @keyframes whyIn{from{opacity:0;transform:translateX(-10px)}}
+  .why b{white-space:nowrap;color:var(--orange);font-size:13px}
+  .verdict{margin-top:12px;background:var(--navy);color:#fff;border-radius:11px;padding:11px 13px;font-size:14px;
+           font-weight:700;animation:whyIn .5s ease both}
+
+  /* kpi */
+  .kpis{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+  .kpi{flex:1;min-width:170px;background:#fff;border:1px solid var(--line);border-radius:13px;padding:13px 16px}
+  .kpi .v{font-size:25px;font-weight:800;color:var(--navy)}
+  .kpi .l{font-size:11px;color:var(--mut);text-transform:uppercase;font-weight:700;letter-spacing:.3px}
+
+  .rain{border-radius:11px;background:linear-gradient(135deg,#0B3A73,#04214A);color:#fff;padding:14px 16px;font-size:14px;
+        line-height:1.5}
+  .rain b{color:#FFC98A}
+
+  /* crew */
+  .job{border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:9px;font-size:13.5px;transition:.35s}
+  .job.act{border-color:var(--orange);box-shadow:0 0 0 3px #EF7C001f;transform:translateX(3px)}
+  .job.closed{opacity:.5}
+  .job small{color:var(--mut)}
+  #ring{opacity:0}
+  #ring.on{animation:ring 1.3s ease-out infinite}
+  @keyframes ring{0%{r:12;opacity:.9}100%{r:34;opacity:0}}
+
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;
+         padding:12px 18px;border-radius:12px;font-size:14px;opacity:0;transition:.4s cubic-bezier(.2,.8,.3,1);
+         pointer-events:none;z-index:50;max-width:78vw;text-align:center;box-shadow:0 10px 26px #0a1c3355}
+  .toast.on{opacity:1;transform:translateX(-50%)}
+  .todo{font-size:13.5px;line-height:1.95}
+  .todo b{color:var(--navy)}
+  .foot{font-size:11px;color:#8496AB;padding:0 24px 8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Civic Operations</h1>
+  <div class="steps" id="steps"></div>
+</header>
+<main>
+  <div class="rail">
+    <button data-v="citizen" class="on"><div>&#128241;</div>Citizen</button>
+    <button data-v="admin"><div>&#128187;</div>City desk</button>
+    <button data-v="crew"><div>&#128666;</div>Crew</button>
+  </div>
+
+  <!-- ======================= CITIZEN ======================= -->
+  <section class="view on" id="v-citizen">
+    <div class="vhead"><h2>Citizen</h2><span>reports a problem, then sees what happened to it</span></div>
+    <div class="wrap">
+      <div class="phone">
+        <div class="pbar"><span>311</span><span style="opacity:.7">Brooklyn</span></div>
+        <div class="pbody">
+          <div class="sos" id="sos">
+            <b>Call 911</b>
+            <p>This sounds like an emergency.<br>311 cannot send help.<br><b>Nothing has been filed.</b></p>
+            <button class="btn ghost" style="width:auto;padding:9px 18px;color:var(--crit)" onclick="closeSos()">Back</button>
+          </div>
+
+          <div id="c-report">
+            <div class="chat" id="chat"><div class="msg">What is wrong, and where?</div></div>
+            <div class="quick" id="quick">
+              <button onclick="say('drain')">&#127908; The drain outside my house is flooding</button>
+              <button onclick="say('gas')">&#127908; I smell gas in my building</button>
+            </div>
+            <button class="btn" id="submitBtn" onclick="submitRequest()" disabled>Send</button>
+          </div>
+
+          <div id="c-track" style="display:none">
+            <h3 style="color:var(--navy);margin-bottom:16px;font-size:17px" id="thead">Sent</h3>
+            <div id="steps3"></div>
+            <div style="font-size:13px;color:var(--mut);line-height:1.5;margin-bottom:14px" id="tinfo"></div>
+            <button class="btn ghost" onclick="resetAll()">Start again</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex:1;min-width:300px">
+        <div class="panel">
+          <h3>What the system checks</h3>
+          <div id="chks"></div>
+        </div>
+        <div class="panel">
+          <h3>Try it</h3>
+          <div class="todo" id="todo"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= ADMIN ======================= -->
+  <section class="view" id="v-admin">
+    <div class="vhead"><h2>City desk</h2><span>what to do first, and why</span></div>
+    <div class="kpis">
+      <div class="kpi"><div class="l">Open today</div><div class="v" id="kOpen">412</div></div>
+      <div class="kpi"><div class="l">Crew travel saved</div><div class="v" id="kKm">18%</div></div>
+      <div class="kpi"><div class="l">Wasted trips avoided</div><div class="v" id="kWaste">37</div></div>
+    </div>
+    <div class="wrap">
+      <div style="flex:1.3;min-width:400px">
+        <div class="panel">
+          <h3><span>Queue</span>
+            <button class="btn orange" style="width:auto;margin:0;padding:8px 15px;font-size:13px" onclick="planNow()">
+              Send the crews</button></h3>
+          <table><thead><tr><th>#</th><th>Problem</th><th>How urgent</th><th>Status</th></tr></thead>
+            <tbody id="queue"></tbody></table>
+        </div>
+      </div>
+      <div style="flex:1;min-width:300px">
+        <div class="panel"><h3>Why this order</h3><div id="why"></div></div>
+        <div class="panel"><h3>Tonight</h3>
+          <div class="rain">&#127783; Heavy rain forecast.<br>Expect about <b>46 drain reports</b> in Brooklyn, instead of the usual 19.</div>
+          <div class="hint">Drain reports rise about five times on heavy-rain days, so crews can move early.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= CREW ======================= -->
+  <section class="view" id="v-crew">
+    <div class="vhead"><h2>Crew</h2><span>drainage van, Brooklyn</span></div>
+    <div class="wrap">
+      <div class="panel" style="flex:1.25;min-width:400px">
+        <h3><span>Today's route</span><span style="font-weight:600;color:var(--mut)" id="routeStat">waiting</span></h3>
+        <svg id="map" viewBox="0 0 620 360" style="width:100%;height:auto;background:#E7EDF4;border-radius:12px">
+          <g stroke="#D6DEE8" stroke-width="12">
+            <line x1="0" y1="68" x2="620" y2="68"/><line x1="0" y1="168" x2="620" y2="168"/>
+            <line x1="0" y1="268" x2="620" y2="268"/>
+            <line x1="88" y1="0" x2="88" y2="360"/><line x1="238" y1="0" x2="238" y2="360"/>
+            <line x1="398" y1="0" x2="398" y2="360"/><line x1="538" y1="0" x2="538" y2="360"/>
+          </g>
+          <rect x="255" y="185" width="128" height="68" rx="6" fill="#D8E8DC"/>
+          <text x="264" y="223" font-size="11.5" fill="#5C7A66">Prospect Park</text>
+          <path id="route" d="M 88 330 L 88 268 L 238 268 L 238 168 L 398 168 L 398 68 L 538 68" fill="none"
+                stroke="#B9C7D8" stroke-width="6" stroke-linecap="round" stroke-dasharray="900" stroke-dashoffset="900"/>
+          <path id="trail" d="M 88 330 L 88 268 L 238 268 L 238 168 L 398 168 L 398 68 L 538 68" fill="none"
+                stroke="#EF7C00" stroke-width="6" stroke-linecap="round" stroke-dasharray="900" stroke-dashoffset="900"/>
+          <g id="pins"></g>
+          <circle cx="88" cy="330" r="7" fill="#0B3A73"/><text x="99" y="335" font-size="11.5" fill="#61748B">Depot</text>
+          <circle id="ring" cx="88" cy="330" r="12" fill="none" stroke="#EF7C00" stroke-width="3"/>
+          <circle id="van" cx="88" cy="330" r="13" fill="#EF7C00" stroke="#fff" stroke-width="3" style="display:none"/>
+        </svg>
+        <div class="hint" id="maphint">No route yet. The city desk sends the crews.</div>
+      </div>
+      <div style="flex:1;min-width:280px">
+        <div class="panel"><h3>Stops</h3><div id="jobs"></div>
+          <button class="btn" id="driveBtn" onclick="drive()" disabled>Drive</button>
+        </div>
+        <div class="panel" id="outcomePanel" style="display:none"><h3>What did you find?</h3>
+          <button class="btn" onclick="outcome('RESOLVED')">Fixed it</button>
+          <button class="btn ghost" onclick="outcome('SUBSIDED')">It had already cleared</button>
+          <button class="btn ghost" onclick="outcome('INVALID')">Nothing there</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+<div class="foot">Mockup for the 28 Sep presentation. Sample data.</div>
+<div class="toast" id="toast"></div>
+<script>
+const $ = s => document.querySelector(s);
+const STEPS = ['Reported', 'Ranked', 'Crew sent', 'On site', 'Done'];
+const CHECKS = [
+  ['Is anyone in danger?', 'No. This needs a crew, not an ambulance.'],
+  ['What is it, and where?', 'Blocked drain, Nostrand Avenue'],
+  ['Has anyone else reported it?', 'Yes, one other person this morning'],
+  ['How bad is it right now?', 'Flooding, rain tonight, school nearby']
+];
+const HERO = 'the flooded drain';
+const WHY = {
+  'hero': { rows: [['Two people reported the same drain', '+6'], ['A school is 310 m away', '+8'],
+                   ['Heavy rain is forecast tonight', '+12'], ['Both reporters have been right before', '+4']],
+            v: 'First of 413 &middot; drainage crew &middot; today' },
+  'signal': { rows: [['A junction signal is out', '+28'], ['A traffic crew is already on the way', '']],
+              v: 'Second &middot; traffic crew' },
+  'pothole': { rows: [['Two reports, same pothole, merged into one job', '+4'],
+                      ['Nothing in the report suggests danger', '']], v: 'Third &middot; this week' },
+  'noise': { rows: [['Five reports in forty minutes, all from one account', ''],
+                    ['That account has been wrong before', '']], v: 'Held for a person to read' }
+};
+const BASE = [{ k: 'signal', t: 'Traffic signal not working', u: 'HIGH', st: 'Crew on the way' },
+              { k: 'pothole', t: 'Pothole on Bedford Avenue', u: 'MEDIUM', st: 'Waiting' },
+              { k: 'noise', t: 'Noise, same block, five times', u: 'LOW', st: 'Being checked' }];
+const JOBS = [['Flooded drain near a school', 'Nostrand Avenue'],
+              ['Street flooding', 'Empire Boulevard'],
+              ['Sewer backup', 'Lefferts Avenue']];
+const TARGETS = [212, 472, 712];
+
+let state = {};
+const fresh = () => ({ said: false, ranked: false, planned: false, arrived: false, closed: null,
+                       stage: 0, sel: 'hero', leg: 0, len: 0, done: [false, false, false] });
+
+function toast(t) { const e = $('#toast'); e.innerHTML = t; e.classList.add('on');
+  clearTimeout(e._h); e._h = setTimeout(() => e.classList.remove('on'), 3400); }
+
+function nextView() {
+  if (!state.ranked) return 'citizen';
+  if (!state.planned) return 'admin';
+  if (!state.closed) return 'crew';
+  return 'citizen';
+}
+function renderChrome() {
+  $('#steps').innerHTML = STEPS.map((s, k) =>
+    `<div class="step ${state.stage === k ? 'on' : state.stage > k ? 'done' : ''}">${s}</div>`).join('');
+  const cur = document.querySelector('.rail button.on').dataset.v, want = nextView();
+  document.querySelectorAll('.rail button').forEach(b => b.classList.toggle('ping', b.dataset.v === want && want !== cur));
+  const todo = [['Tap a message, then <b>Send</b>.', state.ranked],
+                ['On the <b>city desk</b>, press <b>Send the crews</b>.', state.planned],
+                ['On the <b>crew</b> screen, drive and say what you found.', !!state.closed]];
+  $('#todo').innerHTML = todo.map(([t, done], k) =>
+    `<div style="opacity:${done ? .4 : 1}">${done ? '&#10003;' : (k + 1) + '.'} ${t}</div>`).join('');
+}
+function show(v) {
+  document.querySelectorAll('.view').forEach(x => x.classList.toggle('on', x.id === 'v-' + v));
+  document.querySelectorAll('.rail button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+  if (v === 'admin') { renderQueue(); countKpis(); }
+  if (v === 'crew') renderJobs();
+  renderChrome();
+}
+document.querySelectorAll('.rail button').forEach(b => b.onclick = () => show(b.dataset.v));
+
+/* ------------------------------------------------------------------ citizen */
+function say(kind) {
+  const text = kind === 'gas' ? 'I smell gas in my building'
+             : 'The drain outside my house is flooding';
+  $('#chat').insertAdjacentHTML('beforeend', `<div class="msg me">${text}</div>`);
+  $('#quick').style.display = 'none';
+  if (kind === 'gas') { setTimeout(() => $('#sos').classList.add('on'), 600); return; }
+  state.said = true;
+  setTimeout(() => {
+    $('#chat').insertAdjacentHTML('beforeend', '<div class="msg">A blocked drain on Nostrand Avenue. Shall I send it?</div>');
+    $('#submitBtn').disabled = false;
+  }, 800);
+}
+function closeSos() { $('#sos').classList.remove('on'); $('#quick').style.display = 'flex'; $('#chat').lastElementChild.remove(); }
+
+function renderChecks(upto) {
+  $('#chks').innerHTML = CHECKS.map(([q, a], k) =>
+    `<div class="chk ${k < upto ? 'on' : ''}"><span class="box">&#10003;</span>
+       <span><b>${q}</b><small>${k < upto ? a : '&nbsp;'}</small></span></div>`).join('');
+}
+function submitRequest() {
+  if (!state.said || state.ranked) return;
+  state.stage = 1; $('#submitBtn').disabled = true; renderChrome();
+  CHECKS.forEach((c, k) => setTimeout(() => renderChecks(k + 1), 500 + k * 750));
+  setTimeout(() => {
+    state.ranked = true;
+    $('#c-report').style.display = 'none'; $('#c-track').style.display = 'block';
+    renderTracker(); renderChrome();
+    toast('Checked in about a second. It is now <b>first</b> in the Brooklyn queue.');
+  }, 500 + CHECKS.length * 750 + 400);
+}
+function renderTracker() {
+  const c = state.closed;
+  $('#thead').textContent = !state.planned ? 'Checked, waiting for a crew'
+    : !state.arrived ? 'A crew is on the way' : !c ? 'The crew is there now'
+    : c === 'INVALID' ? 'Closed: nothing was found' : 'Fixed';
+  const rows = [
+    ['Sent', 'This morning, 07:42', true],
+    ['Checked', state.planned ? 'Drainage crew, about 13 minutes away' : 'Drainage crew, today', state.ranked],
+    ['Done', c === 'RESOLVED' ? 'The drain is clear and the water is going down'
+        : c === 'SUBSIDED' ? 'The water had already drained away'
+        : c === 'INVALID' ? 'The crew found nothing at that spot'
+        : 'You will be told what the crew found', !!c]
+  ];
+  $('#steps3').innerHTML = rows.map(([t, d, done], k) =>
+    `<div class="stp ${done ? 'done' : (k === 1 && state.ranked) || (k === 2 && state.arrived) ? 'now' : ''}">
+       <div class="dot">${done ? '&#10003;' : k + 1}</div><div><h4>${t}</h4><p>${d}</p></div></div>`).join('');
+  $('#tinfo').innerHTML = c
+    ? (c === 'INVALID' ? 'Nothing was found this time. One visit does not count against you.'
+                       : '&#11088; You were right, and that is remembered next time you report something.')
+    : 'You and one other person reported this.';
+}
+
+/* ------------------------------------------------------------------ city desk */
+function renderQueue() {
+  const rows = BASE.slice();
+  if (state.ranked) rows.unshift({ k: 'hero', t: 'Flooded drain near a school', u: 'HIGH', hero: true,
+    st: state.closed === 'RESOLVED' ? 'Fixed' : state.closed === 'SUBSIDED' ? 'Cleared'
+      : state.closed === 'INVALID' ? 'Nothing found' : state.arrived ? 'Crew on site' : state.planned ? 'Crew on the way' : 'Next' });
+  $('#queue').innerHTML = rows.map((r, i) => `<tr class="row ${r.k === state.sel ? 'sel' : ''}
+      ${r.hero && !state.planned ? 'newly' : ''}" data-k="${r.k}">
+      <td><b>${i + 1}</b></td><td>${r.t}</td><td><span class="pill ${r.u}">${r.u}</span></td><td>${r.st}</td></tr>`).join('');
+  document.querySelectorAll('#queue tr.row').forEach(tr => tr.onclick = () => pick(tr.dataset.k));
+  pick(state.sel);
+}
+function pick(k) {
+  state.sel = k;
+  document.querySelectorAll('#queue tr.row').forEach(tr => tr.classList.toggle('sel', tr.dataset.k === k));
+  const w = WHY[k];
+  $('#why').innerHTML = w.rows.map(([t, b], i) =>
+    `<div class="why" style="animation-delay:${i * 70}ms"><span>${t}</span><b>${b}</b></div>`).join('')
+    + `<div class="verdict" style="animation-delay:${w.rows.length * 70}ms">${w.v}</div>`;
+}
+function countKpis() {
+  const go = (el, target, suffix) => {
+    let v = 0; const step = () => { v = Math.min(target, v + Math.ceil(target / 22));
+      el.textContent = v + (suffix || ''); if (v < target) setTimeout(step, 28); };
+    step();
+  };
+  go($('#kOpen'), 412 + (state.ranked && !state.closed ? 1 : 0), '');
+  go($('#kKm'), 18, '%');
+  go($('#kWaste'), state.closed === 'INVALID' ? 38 : 37, '');
+}
+function planNow() {
+  if (!state.ranked) { toast('Send the citizen report first, on the phone.'); return; }
+  if (state.planned) { toast('Already sent. Drive the route on the crew screen.'); return; }
+  state.planned = true; state.stage = 2; renderQueue(); renderChrome();
+  toast('Route planned: three stops, <b>18% less driving</b> than sending the nearest van to each.');
+  setTimeout(() => { show('crew'); drawRoute(); }, 1100);
+}
+
+/* ------------------------------------------------------------------ crew */
+function renderJobs() {
+  $('#jobs').innerHTML = JOBS.map((j, k) => {
+    const closed = k === 0 ? !!state.closed : state.done[k];
+    return `<div class="job ${k === state.leg && state.planned && !closed ? 'act' : ''} ${closed ? 'closed' : ''}">
+      <b>${k + 1}. ${j[0]}</b><br><small>${j[1]}</small>
+      ${closed ? '<br><small style="color:var(--ok)">&#10003; done</small>' : ''}</div>`;
+  }).join('');
+  const b = $('#driveBtn'), waiting = state.arrived && !state.closed;
+  b.disabled = !state.planned || waiting || state.leg > 2;
+  b.textContent = state.leg > 2 ? 'Shift finished' : 'Drive to stop ' + (state.leg + 1);
+  $('#pins').innerHTML = TARGETS.map((len, k) => {
+    const p = $('#route').getPointAtLength(len);
+    const done = k === 0 ? !!state.closed : state.done[k];
+    return `<circle cx="${p.x}" cy="${p.y}" r="10" fill="${done ? '#1E8E5A' : '#0B3A73'}" stroke="#fff" stroke-width="3"/>
+            <text x="${p.x + 15}" y="${p.y + 4}" font-size="12" fill="#12202F">${k + 1}</text>`;
+  }).join('');
+  $('#routeStat').textContent = state.planned ? 'three stops, 11.8 km' : 'waiting';
+}
+function drawRoute() {
+  const p = $('#route');
+  p.style.transition = 'stroke-dashoffset 1.4s ease'; p.style.strokeDashoffset = 0;
+  $('#van').style.display = 'block';
+  $('#maphint').textContent = 'Three stops, ordered by how urgent they are and how far apart they sit.';
+  renderJobs();
+}
+function drive() {
+  const path = $('#route'), trail = $('#trail'), van = $('#van'), ring = $('#ring');
+  const from = state.len, to = TARGETS[state.leg], total = path.getTotalLength();
+  const t0 = Date.now(), dur = 2400, leg = state.leg;
+  $('#driveBtn').disabled = true; ring.classList.remove('on');
+  const timer = setInterval(() => {
+    const raw = Math.min(1, (Date.now() - t0) / dur);
+    const k = raw < .5 ? 2 * raw * raw : 1 - Math.pow(-2 * raw + 2, 2) / 2;   /* ease in and out */
+    const len = from + (to - from) * k, p = path.getPointAtLength(len);
+    van.setAttribute('cx', p.x); van.setAttribute('cy', p.y);
+    trail.style.strokeDashoffset = 900 - (len / total) * 900;
+    if (raw < 1) return;
+    clearInterval(timer);
+    state.len = to;
+    ring.setAttribute('cx', p.x); ring.setAttribute('cy', p.y); ring.classList.add('on');
+    if (leg === 0) {
+      state.arrived = true; state.stage = 3;
+      $('#outcomePanel').style.display = 'block';
+      $('#maphint').textContent = 'At stop 1. Say what you actually found.';
+      toast('The citizen can already see that the crew is there.');
+      renderTracker();
+    } else {
+      state.done[leg] = true; state.leg++;
+      $('#maphint').textContent = state.leg > 2 ? 'All three stops done.' : 'Stop ' + (leg + 1) + ' done.';
+      toast('Stop ' + (leg + 1) + ' done, and the people who reported it were told.');
+    }
+    renderJobs(); renderChrome();
+  }, 16);
+}
+function outcome(kind) {
+  state.closed = kind; state.stage = 4; state.leg = 1;
+  $('#outcomePanel').style.display = 'none';
+  renderJobs(); renderTracker(); renderChrome();
+  toast(kind === 'INVALID'
+    ? 'Nothing found. That answer teaches the system what a false report looks like.'
+    : 'Fixed. Both people who reported it are told, and they are trusted a little more next time.');
+  setTimeout(() => show('citizen'), 1700);
+}
+
+/* ------------------------------------------------------------------ init */
+function resetAll() {
+  state = fresh();
+  $('#chat').innerHTML = '<div class="msg">What is wrong, and where?</div>';
+  $('#quick').style.display = 'flex';
+  $('#c-report').style.display = 'block'; $('#c-track').style.display = 'none';
+  $('#submitBtn').disabled = true; $('#outcomePanel').style.display = 'none';
+  $('#sos').classList.remove('on');
+  renderChecks(0);
+  const p = $('#route'), t = $('#trail');
+  p.style.transition = 'none'; p.style.strokeDashoffset = 900; t.style.strokeDashoffset = 900;
+  $('#van').style.display = 'none'; $('#van').setAttribute('cx', 88); $('#van').setAttribute('cy', 330);
+  $('#ring').classList.remove('on');
+  $('#maphint').textContent = 'No route yet. The city desk sends the crews.';
+  renderQueue(); renderJobs(); show('citizen');
+}
+resetAll();
+</script>
+</body>
+</html>
