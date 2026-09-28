@@ -59,7 +59,7 @@
   .btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 14px #04214a33}
   .btn.orange{background:var(--orange)} .btn.ghost{background:var(--soft);color:var(--navy)}
   .btn:disabled{opacity:.4;cursor:not-allowed}
-  .sos{position:absolute;inset:0;background:var(--crit);color:#fff;display:none;flex-direction:column;align-items:center;
+  .sos{position:absolute;inset:0;z-index:30;background:var(--crit);color:#fff;display:none;flex-direction:column;align-items:center;
        justify-content:center;gap:14px;text-align:center;padding:24px}
   .sos.on{display:flex;animation:sosIn .3s ease}
   @keyframes sosIn{from{opacity:0;transform:scale(1.06)}}
@@ -363,14 +363,20 @@ function say(kind) {
              : 'The drain outside my house is flooding';
   $('#chat').insertAdjacentHTML('beforeend', `<div class="msg me">${text}</div>`);
   $('#quick').style.display = 'none';
-  if (kind === 'gas') { setTimeout(() => $('#sos').classList.add('on'), 600); return; }
+  if (kind === 'gas') {
+    setTimeout(() => { $('#sos').classList.add('on'); $('#c-report').style.visibility = 'hidden'; }, 600);
+    return;
+  }
   state.said = true;
   setTimeout(() => {
     $('#chat').insertAdjacentHTML('beforeend', '<div class="msg">A blocked drain on Nostrand Avenue. Shall I send it?</div>');
     $('#submitBtn').disabled = false;
   }, 800);
 }
-function closeSos() { $('#sos').classList.remove('on'); $('#quick').style.display = 'flex'; $('#chat').lastElementChild.remove(); }
+function closeSos() {
+  $('#sos').classList.remove('on'); $('#c-report').style.visibility = 'visible'; $('#c-report').style.visibility = 'visible';
+  $('#quick').style.display = 'flex'; $('#chat').lastElementChild.remove();
+}
 
 function renderChecks(upto) {
   $('#chks').innerHTML = CHECKS.map(([q, a], k) =>
